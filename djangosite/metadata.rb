@@ -2,7 +2,7 @@ name              "djangosite"
 maintainer        "Mikhail Kolesnik"
 maintainer_email  "mike@openbunker.org"
 description       "Configures host to run a Django site"
-version           "0.0.1"
+version           "0.0.2"
 
 recipe "djangosite", "Creates Nginx virtual host for a Django site, enables it. Also creates and enables Supervisor 'program' to run the site."
 
@@ -60,3 +60,14 @@ attribute "djangosite/extra_packages",
   :type => "array",
   :default => []
 
+attribute "djangosite/cache/enabled",
+  :display_name => "Wether to enable Django staticgenerator cache use via Nginx",
+  :default => "false"
+
+attribute "djangosite/cache/anonymous_only",
+  :display_name => "Wether to respond with a cached page for anonymous users only",
+  :default => "true"
+
+attribute "djangosite/cache/expires",
+  :display_name => "Value of 'Expires' HTTP header to use for cached pages",
+  :default => "off"

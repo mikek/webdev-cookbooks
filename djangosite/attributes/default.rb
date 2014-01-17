@@ -8,3 +8,7 @@ default['djangosite']['packages'] = [
   'git', 'mercurial', 'subversion', 'libmemcached-dev', 'libxml2', 'libxslt1-dev',
   'graphicsmagick', 'libjpeg-dev', 'libpng-dev', 'libfreetype6-dev']
 default['djangosite']['extra_packages'] = []
+
+default['djangosite']['cache']['enabled'] = false
+default['djangosite']['cache']['anonymous_only'] = true
+default['djangosite']['cache']['expires'] = "1m" # or "modified +1d;"

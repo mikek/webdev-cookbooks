@@ -9,8 +9,6 @@ server {
 
     client_max_body_size <%= node.djangosite.client_max_body_size %>;
 
-    ### No modifications/templatizations below this line are required ###
-
     set $proj_root /home/$proj/project;
     if ($package = ""){
         set $package $proj;
@@ -28,7 +26,6 @@ server {
 
     location / {
         include            uwsgi_params;
-        root               $media_root/cache/fresh;
         keepalive_timeout  0;
         uwsgi_read_timeout 270;
         uwsgi_send_timeout 180;
@@ -40,7 +37,7 @@ server {
         #if ($ssl_https = "10"){
         #    rewrite     ^(.*)   https://$server_name$1 permanent;
         #}
-
+        #
         # This does not work with uploadprogress, which wants POST too.
         # Pass all POST requests right to django:
         #if ($request_method = POST) {
@@ -48,38 +45,47 @@ server {
         #    break;
         #}
 
-        # staticgenerator cache check
+        <% if node['djangosite']['cache']['enabled'] -%>
+        root $media_root/cache/fresh;
+        <% if node['djangosite']['cache']['anonymous_only'] -%>
+        if ($cookie_sessionid){
+            uwsgi_pass unix:$proj_root/tmp/uwsgi.sock;
+            break;
+        }
+        <% end -%>
         if ($http_x_requested_with = XMLHttpRequest) {
             set $is_ajax ",ajax";
         }
-        if (-f $request_filename/index.html%3F$args$is_ajax) {
-            rewrite (.*) /cache/fresh/$1/index.html%3F$args$is_ajax last;
+        if (-f $request_filename/${lang_prefix}index.html%3F$args$is_ajax) {
+            rewrite (.*) /cache/fresh/$1/${lang_prefix}index.html%3F$args$is_ajax last;
         }
+        <% end -%>
 
-            # *_pass should be outside of any 'if' block to make upload progress module happy
-            uwsgi_pass    unix:$proj_root/tmp/uwsgi.sock;
-            track_uploads uprogr 180s;
-        }
+        # *_pass should be outside of any 'if' block to make upload progress module happy
+        uwsgi_pass    unix:$proj_root/tmp/uwsgi.sock;
+        track_uploads uprogr 180s;
+    }
 
-        # staticgenerator cache location.
-        # root is inherited from server and is at $media_root.
-        location /cache/fresh/ {
-            internal;
-            default_type text/html;
-            gzip_static  on;
-            # if-modified-since works pretty well here
-            #expires     modified    +12h;
-            add_header   X-Cache-Hit true;
-        }
+    <% if node['djangosite']['cache']['enabled'] -%>
+    # staticgenerator cache location.
+    # root is inherited from server and is at $media_root.
+    location /cache/fresh/ {
+        internal;
+        default_type text/html;
+        gzip_static  on;
+        expires      <%= node.djangosite.cache.expires %>;
+        add_header   X-Cache-Hit true;
+    }
+    <% end -%>
 
-        # TODO: ask how to avoid this non-DRY block.
-        # named location to use as a fallback in try_files directives only.
-        # (currently used only for robots/sitemap)
-        location @django {
-            include           uwsgi_params;
-            keepalive_timeout 0;
-            uwsgi_pass        unix:$proj_root/tmp/uwsgi.sock;
-        }
+    # TODO: how to avoid this non-DRY block?
+    # Named location to use as a fallback in try_files directives only.
+    # (currently used only for robots/sitemap)
+    location @django {
+        include           uwsgi_params;
+        keepalive_timeout 0;
+        uwsgi_pass        unix:$proj_root/tmp/uwsgi.sock;
+    }
 
     location ^~ /uploadprogress {
         # report uploads tracked in the 'uprogr' zone
@@ -115,6 +121,7 @@ server {
         access_log  off;
         expires     1y;
     }
+    # set maximum in-the-future expire date for processed unique static assets
     location ~* "^/media/static/.+\.[0-9a-f]{12}\.\w{1,}$" {
         root        $django_proj_root;
         access_log  off;
