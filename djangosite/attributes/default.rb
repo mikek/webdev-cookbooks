@@ -14,3 +14,7 @@ default['djangosite']['extra_packages'] = []
 default['djangosite']['cache']['enabled'] = false
 default['djangosite']['cache']['anonymous_only'] = true
 default['djangosite']['cache']['expires'] = "1m" # or "modified +1d;"
+
+default['djangosite']['celery']['enabled'] = false
+default['djangosite']['celery']['args'] = ""
+default['djangosite']['celery']['stopwaitsecs'] = 60

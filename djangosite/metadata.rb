@@ -2,7 +2,7 @@ name              "djangosite"
 maintainer        "Mikhail Kolesnik"
 maintainer_email  "mike@openbunker.org"
 description       "Configures host to run a Django site"
-version           "0.0.2"
+version           "0.0.3"
 
 recipe "djangosite", "Creates Nginx virtual host for a Django site, enables it. Also creates and enables Supervisor 'program' to run the site."
 
@@ -71,3 +71,15 @@ attribute "djangosite/cache/anonymous_only",
 attribute "djangosite/cache/expires",
   :display_name => "Value of 'Expires' HTTP header to use for cached pages",
   :default => "off"
+
+attribute "djangosite/celery/enabled",
+  :display_name => "Wether Celery is enabled for this Django site",
+  :default => "false"
+
+attribute "djangosite/celery/args",
+  :display_name => "Arguments to pass to Celery daemon",
+  :default => ""
+
+attribute "djangosite/celery/stopwaitsecs",
+  :display_name => "Number of seconds to wait for Celery instance to stop",
+  :default => '60'

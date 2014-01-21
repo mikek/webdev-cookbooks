@@ -33,3 +33,16 @@ template "#{node.nginx.dir}/sites-available/#{node.djangosite.name}" do
 end
 
 nginx_site "#{node.djangosite.name}"
+
+if node['djangosite']['celery']['enabled']
+  supervisor_service "#{node.djangosite.name}_celery" do
+    user "#{node.djangosite.name}"
+    directory "/home/#{node.djangosite.name}/project"
+    command "/home/#{node.djangosite.name}/.env/bin/python ./manage.py celery worker --loglevel=INFO #{node.djangosite.celery.args}"
+    action :enable
+    autostart true
+    priority 800
+    startsecs 2
+    stopwaitsecs #{node.djangosite.celery.stopwaitsecs}
+  end
+end
