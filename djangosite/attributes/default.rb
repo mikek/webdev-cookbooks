@@ -1,3 +1,5 @@
+default['djangosite']['name'] = ""
+default['djangosite']['domains'] = []
 # 'package' name defaults to project 'name' in nginx config if it is empty
 default['djangosite']['package'] = nil
 
