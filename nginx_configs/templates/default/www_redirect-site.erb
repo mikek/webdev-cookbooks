@@ -1,4 +1,6 @@
 server {
+  listen 80;
+  listen 443;
   server_name ~^www\.(.+)$;
   set $nowwwdomain $1;
   rewrite ^ $scheme://$nowwwdomain$uri permanent;
