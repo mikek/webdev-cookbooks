@@ -2,7 +2,7 @@ name              "djangosite"
 maintainer        "Mikhail Kolesnik"
 maintainer_email  "mike@openbunker.org"
 description       "Configures host to run a Django site"
-version           "0.0.3"
+version           "0.0.4"
 
 recipe "djangosite", "Creates Nginx virtual host for a Django site, enables it. Also creates and enables Supervisor 'program' to run the site."
 
