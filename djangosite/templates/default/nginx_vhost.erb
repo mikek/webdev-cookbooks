@@ -1,3 +1,5 @@
+limit_req_zone $binary_remote_addr zone=<%= node.djangosite.name %>_per_ip:256k rate=1r/s;
+
 server {
     server_name  <% node.djangosite.domains.each do |domain| %> <%= domain %><% end %>;
 
@@ -6,8 +8,6 @@ server {
 
     access_log   /var/log/nginx/<%= node.djangosite.name %>.access.log;
     error_log    /var/log/nginx/<%= node.djangosite.name %>.error.log;
-
-    client_max_body_size <%= node.djangosite.client_max_body_size %>;
 
     set $proj_root /home/$proj/project;
     if ($package = ""){
@@ -19,38 +19,43 @@ server {
     root   $media_root;
     listen 80;
 
+    client_body_timeout 10;
+    client_header_timeout 10;
+    send_timeout 10;
+    limit_req zone=overall_per_ip burst=3 nodelay;
+
     # we have no fancy stuff in django projects yet
     if ($request_method !~ ^(POST|PUT|GET|HEAD)$){
         return 444;
     }
 
-    location / {
-        include            uwsgi_params;
+    # hack: we return 418 in any place where request should be passed to django
+    error_page 418 = @django;
+
+    # TODO: how to avoid this non-DRY block?
+    # Named location to use as a fallback in try_files directives only.
+    # (currently used only for robots/sitemap)
+    location @django {
+        client_max_body_size <%= node.djangosite.client_max_body_size %>;
         keepalive_timeout  0;
-        uwsgi_read_timeout 270;
-        uwsgi_send_timeout 180;
+        limit_req          zone=<%= node.djangosite.name %>_per_ip burst=3 nodelay;
+        uwsgi_read_timeout 30;
+        uwsgi_send_timeout 10;
+        include            uwsgi_params;
+        uwsgi_pass         unix:$proj_root/tmp/uwsgi.sock;
+    }
 
-        # redirect to https scheme if we have ssl enabled for this server
-        #if ($scheme != https){
-        #    set $ssl_https      "${ssl_is_on}0";
-        #}
-        #if ($ssl_https = "10"){
-        #    rewrite     ^(.*)   https://$server_name$1 permanent;
-        #}
-        #
-        # This does not work with uploadprogress, which wants POST too.
+    location / {
         # Pass all POST requests right to django:
-        #if ($request_method = POST) {
-        #    uwsgi_pass unix:$proj_root/tmp/uwsgi.sock;
-        #    break;
-        #}
-
+        if ($request_method = POST) {
+            return 418;
+        }
         <% if node['djangosite']['cache']['enabled'] -%>
         root $media_root/cache/fresh;
         <% if node['djangosite']['cache']['anonymous_only'] -%>
+        # this expects 'sessionid' cookie to be explicitly removed on user logout!
         if ($cookie_sessionid){
-            uwsgi_pass unix:$proj_root/tmp/uwsgi.sock;
-            break;
+            return 418;
         }
         <% end -%>
         if ($http_x_requested_with = XMLHttpRequest) {
@@ -60,10 +65,7 @@ server {
             rewrite (.*) /cache/fresh/$1/${lang_prefix}index.html%3F$args$is_ajax last;
         }
         <% end -%>
-
-        # *_pass should be outside of any 'if' block to make upload progress module happy
-        uwsgi_pass    unix:$proj_root/tmp/uwsgi.sock;
-        track_uploads uprogr 180s;
+        return 418;
     }
 
     <% if node['djangosite']['cache']['enabled'] -%>
@@ -77,21 +79,6 @@ server {
         add_header   X-Cache-Hit true;
     }
     <% end -%>
-
-    # TODO: how to avoid this non-DRY block?
-    # Named location to use as a fallback in try_files directives only.
-    # (currently used only for robots/sitemap)
-    location @django {
-        include           uwsgi_params;
-        keepalive_timeout 0;
-        uwsgi_pass        unix:$proj_root/tmp/uwsgi.sock;
-    }
-
-    location ^~ /uploadprogress {
-        # report uploads tracked in the 'uprogr' zone
-        upload_progress_json_output;
-        report_uploads uprogr;
-    }
 
     # not the best solution:
     # dumb rss readers expect to find the icon in the request root,
