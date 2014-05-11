@@ -1,3 +1,4 @@
+include_recipe "overrides::supervisor"
 include_recipe "djangosite::iptables"
 include_recipe "djangosite::packages"
 

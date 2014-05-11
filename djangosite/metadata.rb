@@ -2,7 +2,7 @@ name              "djangosite"
 maintainer        "Mikhail Kolesnik"
 maintainer_email  "mike@openbunker.org"
 description       "Configures host to run a Django site"
-version           "0.0.4"
+version           "0.0.5"
 
 recipe "djangosite", "Creates Nginx virtual host for a Django site, enables it. Also creates and enables Supervisor 'program' to run the site."
 
@@ -16,6 +16,7 @@ depends 'nginx'
 depends 'supervisor'
 depends 'supervisor_django'
 depends 'simple_iptables'
+depends 'overrides'
 
 attribute "djangosite/name",
   :display_name => "Django site name",
