@@ -32,12 +32,14 @@ server {
 
     # hack: we return 418 in any place where request should be passed to django
     error_page 418 = @django;
+    # set here because overriding this only in named location does not seem to.
+    # work
+    client_max_body_size <%= node.djangosite.client_max_body_size %>;
 
     # TODO: how to avoid this non-DRY block?
     # Named location to use as a fallback in try_files directives only.
     # (currently used only for robots/sitemap)
     location @django {
-        client_max_body_size <%= node.djangosite.client_max_body_size %>;
         keepalive_timeout  0;
         limit_req          zone=<%= node.djangosite.name %>_django_per_ip burst=3 nodelay;
         uwsgi_read_timeout 30;
